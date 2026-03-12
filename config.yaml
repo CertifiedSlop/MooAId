@@ -1,0 +1,41 @@
+# MooAId Configuration
+# My Opinion AI Daemon
+
+# Default AI provider to use (openrouter, ollama, openai, gemini)
+provider: openrouter
+
+# OpenRouter Configuration
+openrouter:
+  api_key: ""
+  base_url: "https://openrouter.ai/api/v1"
+  default_model: "anthropic/claude-3-haiku"
+
+# Ollama Configuration (local models)
+ollama:
+  host: "http://localhost:11434"
+  model: "llama3"
+
+# OpenAI Configuration
+openai:
+  api_key: ""
+  base_url: "https://api.openai.com/v1"
+  default_model: "gpt-3.5-turbo"
+
+# Google Gemini Configuration
+gemini:
+  api_key: ""
+  default_model: "gemini-pro"
+
+# Database Configuration
+database:
+  path: "./mooaid.db"
+
+# API Configuration
+api:
+  host: "0.0.0.0"
+  port: 8000
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
