@@ -30,6 +30,7 @@ This is **not a chatbot**. It is an **AI opinion predictor**.
 
 - Python 3.10 or higher
 - pip or uv for package management
+- Docker & Docker Compose (optional, for containerized deployment)
 
 ### Install from Source
 
@@ -43,6 +44,57 @@ pip install -e ".[dev]"
 
 # Or using uv
 uv pip install -e ".[dev]"
+```
+
+### Docker Deployment
+
+#### Quick Start with Docker Compose
+
+```bash
+# Clone the repository
+git clone https://github.com/mooaid/mooaid.git
+cd mooaid
+
+# Copy environment template
+cp .env.example .env
+
+# Edit .env and add your API keys
+# OPENROUTER_API_KEY=your-key-here
+
+# Start with Docker Compose (default: OpenRouter provider)
+docker compose up -d
+
+# Or start with Ollama (local models, no API key needed)
+docker compose --profile ollama up -d
+```
+
+The API will be available at `http://localhost:8000`.
+
+#### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MOOAID_PORT` | API port | `8000` |
+| `MOOAID_PROVIDER` | AI provider | `openrouter` |
+| `OPENROUTER_API_KEY` | OpenRouter API key | - |
+| `OPENAI_API_KEY` | OpenAI API key | - |
+| `GEMINI_API_KEY` | Gemini API key | - |
+| `OLLAMA_HOST` | Ollama host | `http://ollama:11434` |
+
+#### Docker Commands
+
+```bash
+# View logs
+docker compose logs -f mooaid
+
+# Stop services
+docker compose down
+
+# Rebuild after code changes
+docker compose up -d --build
+
+# Access database volume
+docker volume inspect mooaid_mooaid_data
 ```
 
 ---

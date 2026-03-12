@@ -1,0 +1,54 @@
+# Git
+.git
+.gitignore
+
+# Qwen
+.qwen/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Build
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Development
+tests/
+*.log
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Nix
+shell.nix
+result/

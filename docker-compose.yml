@@ -1,0 +1,93 @@
+# MooAId - My Opinion AI Daemon
+# Docker Compose configuration
+
+services:
+  # Main MooAId API service
+  mooaid:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mooaid
+    restart: unless-stopped
+    ports:
+      - "${MOOAID_PORT:-8000}:8000"
+    volumes:
+      # Persist database data
+      - mooaid_data:/app/data
+      # Mount custom config (optional)
+      - ./config.yaml:/app/config.yaml:ro
+    environment:
+      # API Configuration
+      - MOOAID_HOST=0.0.0.0
+      - MOOAID_PORT=8000
+      # Provider Configuration (override via .env)
+      - MOOAID_PROVIDER=${MOOAID_PROVIDER:-openrouter}
+      # API Keys (set in .env file)
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      # Ollama (if using local Ollama service)
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama:11434}
+    depends_on:
+      - ollama
+    networks:
+      - mooaid_network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Ollama service for local AI models (optional)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: mooaid-ollama
+    restart: unless-stopped
+    volumes:
+      - ollama_models:/root/.ollama
+    ports:
+      - "11434:11434"
+    networks:
+      - mooaid_network
+    # Uncomment below for GPU support
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+    profiles:
+      - ollama
+
+  # Ollama pull service - pulls model on startup
+  ollama-pull:
+    image: ollama/ollama:latest
+    container_name: mooaid-ollama-pull
+    volumes:
+      - ollama_models:/root/.ollama
+    entrypoint: >
+      sh -c "
+        echo 'Pulling llama3 model...' &&
+        ollama pull llama3 &&
+        echo 'Model pulled successfully'
+      "
+    depends_on:
+      - ollama
+    networks:
+      - mooaid_network
+    profiles:
+      - ollama
+
+volumes:
+  # Database persistence
+  mooaid_data:
+    driver: local
+  # Ollama models storage
+  ollama_models:
+    driver: local
+
+networks:
+  mooaid_network:
+    driver: bridge
