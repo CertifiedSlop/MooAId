@@ -100,7 +100,7 @@ class DatabaseManager:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT UNIQUE NOT NULL,
                     preferences TEXT DEFAULT '[]',
-                    values TEXT DEFAULT '[]',
+                    "values" TEXT DEFAULT '[]',
                     personality TEXT DEFAULT '[]',
                     context TEXT DEFAULT '[]',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -167,7 +167,7 @@ class DatabaseManager:
         async with aiosqlite.connect(self._db_path) as db:
             await db.execute(
                 """
-                INSERT INTO profiles (name, preferences, values, personality, context)
+                INSERT INTO profiles (name, preferences, "values", personality, context)
                 VALUES (?, '[]', '[]', '[]', '[]')
                 """,
                 (name,),
@@ -186,8 +186,8 @@ class DatabaseManager:
         async with aiosqlite.connect(self._db_path) as db:
             await db.execute(
                 """
-                UPDATE profiles 
-                SET preferences = ?, values = ?, personality = ?, context = ?,
+                UPDATE profiles
+                SET preferences = ?, "values" = ?, personality = ?, context = ?,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE name = ?
                 """,

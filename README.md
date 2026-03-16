@@ -16,11 +16,14 @@ This is **not a chatbot**. It is an **AI opinion predictor**.
 
 - 🤖 **Multi AI Provider Support** - OpenRouter, Ollama (local), OpenAI, Google Gemini
 - 📝 **User Profile System** - Store preferences, values, personality traits
+- 🧠 **AI Profile Builder** - Interactive question-based profile creation with psychoanalysis
 - 🔮 **Opinion Prediction Engine** - AI-powered opinion prediction based on your profile
 - 🌐 **REST API** - Full-featured API for integration
 - 💻 **CLI Tool** - Command-line interface for daily use
+- 🎨 **Web UI** - Beautiful browser-based interface
 - ⚙️ **Flexible Configuration** - YAML-based config system
 - 🗄️ **SQLite Storage** - Persistent profile and history storage
+- 🐳 **Docker Support** - Easy containerized deployment
 
 ---
 
@@ -36,8 +39,8 @@ This is **not a chatbot**. It is an **AI opinion predictor**.
 
 ```bash
 # Clone the repository
-git clone https://github.com/mooaid/mooaid.git
-cd mooaid
+git clone https://github.com/CertifiedSlop/MooAId.git
+cd MooAId
 
 # Install dependencies
 pip install -e ".[dev]"
@@ -52,8 +55,8 @@ uv pip install -e ".[dev]"
 
 ```bash
 # Clone the repository
-git clone https://github.com/mooaid/mooaid.git
-cd mooaid
+git clone https://github.com/CertifiedSlop/MooAId.git
+cd MooAId
 
 # Copy environment template
 cp .env.example .env
@@ -133,6 +136,7 @@ gemini:
 
 ### 2. Create Your Profile
 
+**Option A: Manual Profile Creation**
 ```bash
 # Create a default profile
 mooaid profile create default
@@ -152,6 +156,16 @@ mooaid profile add personality "analytical"
 mooaid profile add personality "pragmatic"
 mooaid profile add personality "skeptical of hype"
 ```
+
+**Option B: AI-Powered Profile Builder (Recommended!)**
+```bash
+# Use the interactive profile builder
+mooaid profile build default
+```
+
+The Profile Builder will ask you 11 thoughtful questions across 4 categories (Interests, Values, Personality, Context) and automatically extract your profile data from your answers. It's faster and more natural than manually adding traits!
+
+Or use the Web UI at `http://localhost:8000/ui` and click the **Personality Builder** button.
 
 ### 3. Ask MooAId for an Opinion
 
@@ -500,5 +514,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## Support
 
 For issues and questions:
-- GitHub Issues: https://github.com/mooaid/mooaid/issues
-- Documentation: https://github.com/mooaid/mooaid/wiki
+- GitHub Issues: https://github.com/CertifiedSlop/MooAId/issues
+- Documentation: https://github.com/CertifiedSlop/MooAId/wiki

@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="MooAId - My Opinion AI Daemon - AI-powered opinion prediction system">
+    <meta name="theme-color" content="#8b5cf6">
+    
+    <title>MooAId - My Opinion AI Daemon</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Tailwind CSS (CDN for production build) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            300: '#c4b5fd',
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Toast Notifications -->
+        <div class="toast-container">
+            <transition-group name="fade">
+                <div v-for="toast in toasts" :key="toast.id"
+                    :class="['toast', `toast-${toast.type}`]">
+                    <i :class="['toast-icon ph',
+                        toast.type === 'success' ? 'ph-check-circle' :
+                        toast.type === 'error' ? 'ph-warning-circle' :
+                        toast.type === 'warning' ? 'ph-warning' :
+                        'ph-info']"></i>
+                    <span class="toast-message">{{ toast.message }}</span>
+                </div>
+            </transition-group>
+        </div>
+
+        <!-- Sidebar Navigation -->
+        <aside :class="['sidebar', { open: sidebarOpen }]">
+            <div class="sidebar-header">
+                <div class="sidebar-brand">
+                    <div class="brand-icon">
+                        <i class="ph ph-robot"></i>
+                    </div>
+                    <div class="brand-text">
+                        <h1>MooAId</h1>
+                        <p>My Opinion AI Daemon</p>
+                    </div>
+                </div>
+                
+                <nav class="sidebar-nav">
+                    <button @click="switchTab('opinion')"
+                        :class="['nav-button', { active: currentTab === 'opinion' }]">
+                        <i class="ph ph-chat-centered-text"></i>
+                        <span>Ask Opinion</span>
+                    </button>
+                    
+                    <button @click="switchTab('profiles')"
+                        :class="['nav-button', { active: currentTab === 'profiles' }]">
+                        <i class="ph ph-users"></i>
+                        <span>Profiles</span>
+                    </button>
+                    
+                    <button @click="switchTab('history')"
+                        :class="['nav-button', { active: currentTab === 'history' }]">
+                        <i class="ph ph-clock-counter-clockwise"></i>
+                        <span>History</span>
+                    </button>
+                    
+                    <button @click="switchTab('config')"
+                        :class="['nav-button', { active: currentTab === 'config' }]">
+                        <i class="ph ph-gear"></i>
+                        <span>Settings</span>
+                    </button>
+                </nav>
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="status-card">
+                    <div class="status-indicator">
+                        <div class="status-dot" :class="{ degraded: healthStatus !== 'healthy' }"
+                            :style="{ background: healthColor, boxShadow: `0 0 10px ${healthColor}` }"></div>
+                        <span class="status-text">
+                            {{ healthStatus === 'healthy' ? 'System Online' : 'API Key Required' }}
+                        </span>
+                    </div>
+                    <p class="status-provider">Provider: {{ config.provider || 'Not set' }}</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-wrapper">
+                <!-- Ask Opinion Tab -->
+                <transition name="fade" mode="out-in">
+                    <div v-if="currentTab === 'opinion'" key="opinion" class="space-y-6">
+                        <div class="page-header">
+                            <h2 class="page-title">Ask Opinion</h2>
+                            <p class="page-subtitle">Get AI-powered opinion predictions based on your profile</p>
+                        </div>
+                        
+                        <div class="grid lg:grid-cols-3 gap-6">
+                            <!-- Question Form -->
+                            <div class="lg:col-span-2 space-y-6">
+                                <div class="card">
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <i class="ph ph-question"></i>Your Question
+                                        </label>
+                                        <textarea v-model="opinionForm.question"
+                                            placeholder="What do you think about artificial intelligence in healthcare?"
+                                            class="form-textarea"
+                                            @keydown.ctrl.enter="submitOpinion"></textarea>
+                                    </div>
+                                    
+                                    <div class="grid sm:grid-cols-2 gap-4">
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <i class="ph ph-user"></i>Profile
+                                            </label>
+                                            <select v-model="opinionForm.profile" class="form-select">
+                                                <option v-for="p in profiles" :key="p" :value="p">{{ p }}</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">
+                                                <i class="ph ph-context-menu"></i>Additional Context
+                                            </label>
+                                            <input v-model="opinionForm.context" type="text"
+                                                placeholder="Optional context..."
+                                                class="form-input">
+                                        </div>
+                                    </div>
+                                    
+                                    <button @click="submitOpinion" :disabled="loading"
+                                        class="btn btn-primary btn-block">
+                                        <i :class="loading ? 'ph ph-spinner animate-spin' : 'ph ph-magic-wand'"></i>
+                                        {{ loading ? 'Analyzing...' : 'Get Prediction' }}
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Result Panel -->
+                            <div class="lg:col-span-1">
+                                <div v-if="opinionResult" class="card card-hover sticky top-6">
+                                    <div class="flex items-center gap-2 mb-4">
+                                        <i class="ph ph-lightbulb text-amber-500 text-2xl"></i>
+                                        <h3 class="font-bold text-slate-800">Prediction</h3>
+                                    </div>
+                                    
+                                    <div class="space-y-4">
+                                        <div>
+                                            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Opinion</p>
+                                            <p class="text-slate-700 leading-relaxed">{{ opinionResult.predicted_opinion }}</p>
+                                        </div>
+                                        
+                                        <div class="pt-4 border-t border-slate-100">
+                                            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Reasoning</p>
+                                            <p class="text-slate-600 text-sm leading-relaxed italic">{{ opinionResult.reasoning }}</p>
+                                        </div>
+                                        
+                                        <div class="pt-4 border-t border-slate-100 flex flex-wrap gap-2">
+                                            <span class="px-3 py-1 bg-primary-100 text-primary-700 text-xs font-medium rounded-full">
+                                                {{ opinionResult.model }}
+                                            </span>
+                                            <span class="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">
+                                                {{ opinionResult.profile_used }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div v-else class="empty-state">
+                                    <i class="ph ph-chat-circle-dots empty-state-icon"></i>
+                                    <p class="empty-state-text">Ask a question to see the AI's prediction</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Profiles Tab -->
+                    <div v-else-if="currentTab === 'profiles'" key="profiles" class="space-y-6">
+                        <div class="page-header">
+                            <h2 class="page-title">Profiles</h2>
+                            <p class="page-subtitle">Manage personality profiles for different contexts</p>
+                        </div>
+
+                        <!-- Personality Builder Banner -->
+                        <div class="card gradient-bg text-white">
+                            <div class="flex items-start justify-between gap-4">
+                                <div class="flex-1">
+                                    <h3 class="text-xl font-bold mb-2 flex items-center gap-2">
+                                        <i class="ph ph-magic-wand"></i>
+                                        Personality Builder
+                                    </h3>
+                                    <p class="text-white/90 mb-4">
+                                        Answer a few questions to quickly build your personality profile.
+                                        This helps the AI give more personalized opinion predictions!
+                                    </p>
+                                    <button @click="openPersonalityBuilder"
+                                        class="btn bg-white text-primary-600 hover:bg-white/90">
+                                        <i class="ph ph-sparkle"></i>
+                                        Start Builder
+                                    </button>
+                                </div>
+                                <i class="ph ph-brain text-6xl text-white/20"></i>
+                            </div>
+                        </div>
+
+                        <div class="grid lg:grid-cols-3 gap-6">
+                            <!-- Create Profile -->
+                            <div class="lg:col-span-1">
+                                <div class="card sticky top-6">
+                                    <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                        <i class="ph ph-plus-circle text-primary-500"></i>
+                                        Create Profile
+                                    </h3>
+                                    <input v-model="newProfileName" type="text" placeholder="Profile name..."
+                                        class="form-input mb-4">
+                                    <button @click="createProfile" class="btn btn-primary btn-block">
+                                        <i class="ph ph-plus"></i>
+                                        Create
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Profile List -->
+                            <div class="lg:col-span-2 space-y-4">
+                                <div v-for="profile in profiles" :key="profile"
+                                    class="card card-hover"
+                                    @click="editProfile(profile)">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-12 h-12 gradient-bg rounded-xl flex items-center justify-center">
+                                                <i class="ph ph-user text-white text-xl"></i>
+                                            </div>
+                                            <div>
+                                                <h4 class="font-bold text-slate-800">{{ profile }}</h4>
+                                                <p class="text-sm text-slate-500">Click to edit</p>
+                                            </div>
+                                        </div>
+                                        <button @click.stop="deleteProfile(profile)"
+                                            class="btn-icon text-rose-500 hover:bg-rose-50">
+                                            <i class="ph ph-trash text-xl"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div v-if="profiles.length === 0" class="empty-state">
+                                    <i class="ph ph-users empty-state-icon"></i>
+                                    <p class="empty-state-text">No profiles yet. Create one to get started!</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- History Tab -->
+                    <div v-else-if="currentTab === 'history'" key="history" class="space-y-6">
+                        <div class="page-header">
+                            <h2 class="page-title">History</h2>
+                            <p class="page-subtitle">View your past opinion predictions</p>
+                        </div>
+                        
+                        <div class="card overflow-hidden">
+                            <div v-if="history.length > 0" class="divide-y divide-slate-100">
+                                <div v-for="(item, index) in history" :key="index"
+                                    class="p-6 hover:bg-slate-50 transition-colors">
+                                    <div class="flex items-start justify-between gap-4">
+                                        <div class="flex-1">
+                                            <div class="flex items-center gap-2 mb-2">
+                                                <i class="ph ph-question text-primary-500"></i>
+                                                <span class="font-semibold text-slate-800">{{ item.question }}</span>
+                                            </div>
+                                            <p class="text-slate-600 ml-6">{{ item.predicted_opinion }}</p>
+                                            <div class="flex items-center gap-4 mt-3 ml-6 text-sm text-slate-400">
+                                                <span class="flex items-center gap-1">
+                                                    <i class="ph ph-user"></i>
+                                                    {{ item.profile_name }}
+                                                </span>
+                                                <span class="flex items-center gap-1">
+                                                    <i class="ph ph-cpu"></i>
+                                                    {{ item.provider }}
+                                                </span>
+                                                <span class="flex items-center gap-1">
+                                                    <i class="ph ph-clock"></i>
+                                                    {{ formatDate(item.created_at) }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div v-else class="empty-state">
+                                <i class="ph ph-clock-counter-clockwise empty-state-icon"></i>
+                                <p class="empty-state-text">No history yet. Ask a question to start building your history!</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Config Tab -->
+                    <div v-else-if="currentTab === 'config'" key="config" class="space-y-6">
+                        <div class="page-header">
+                            <h2 class="page-title">Settings</h2>
+                            <p class="page-subtitle">Configure AI providers and API keys</p>
+                        </div>
+                        
+                        <div class="max-w-2xl">
+                            <div class="card space-y-6">
+                                <!-- Provider Selection -->
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="ph ph-cpu"></i>AI Provider
+                                    </label>
+                                    <select v-model="configForm.provider" class="form-select">
+                                        <option value="openrouter">OpenRouter</option>
+                                        <option value="openai">OpenAI</option>
+                                        <option value="gemini">Google Gemini</option>
+                                        <option value="ollama">Ollama (Local)</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- OpenRouter Settings -->
+                                <div v-if="configForm.provider === 'openrouter'" class="p-4 bg-primary-50 rounded-xl space-y-4">
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <i class="ph ph-key"></i>API Key
+                                        </label>
+                                        <div class="relative">
+                                            <input v-model="configForm.openrouter_api_key" :type="showKey ? 'text' : 'password'"
+                                                placeholder="sk-or-..."
+                                                class="form-input pr-12">
+                                            <button @click="showKey = !showKey" type="button"
+                                                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                                <i :class="showKey ? 'ph ph-eye-slash' : 'ph ph-eye'"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <i class="ph ph-microchip"></i>Model
+                                        </label>
+                                        <searchable-select
+                                            v-model="configForm.openrouter_model"
+                                            :fetch-options="fetchOpenRouterModels"
+                                            placeholder="Search and select a model..."
+                                            :loading="saving"
+                                        ></searchable-select>
+                                        <div class="flex items-center justify-between mt-2">
+                                            <a href="https://openrouter.ai/models" target="_blank"
+                                                class="text-xs text-primary-600 hover:text-primary-700 inline-flex items-center gap-1">
+                                                <i class="ph ph-external-link"></i>
+                                                Browse all models
+                                            </a>
+                                            <span class="text-xs text-slate-400">Type to search {{ models.openrouter?.length || '...' }}+ models</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- OpenAI Settings -->
+                                <div v-if="configForm.provider === 'openai'" class="p-4 bg-emerald-50 rounded-xl space-y-4">
+                                    <div class="form-group">
+                                        <label class="form-label">API Key</label>
+                                        <input v-model="configForm.openai_api_key" type="password" placeholder="sk-..."
+                                            class="form-input">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Model</label>
+                                        <select v-model="configForm.openai_model" class="form-select">
+                                            <option value="gpt-4o">GPT-4o</option>
+                                            <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                                            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <!-- Gemini Settings -->
+                                <div v-if="configForm.provider === 'gemini'" class="p-4 bg-blue-50 rounded-xl space-y-4">
+                                    <div class="form-group">
+                                        <label class="form-label">API Key</label>
+                                        <input v-model="configForm.gemini_api_key" type="password" placeholder="AIza..."
+                                            class="form-input">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Model</label>
+                                        <select v-model="configForm.gemini_model" class="form-select">
+                                            <option value="gemini-pro">Gemini Pro</option>
+                                            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <!-- Ollama Settings -->
+                                <div v-if="configForm.provider === 'ollama'" class="p-4 bg-amber-50 rounded-xl space-y-4">
+                                    <div class="form-group">
+                                        <label class="form-label">Host</label>
+                                        <input v-model="configForm.ollama_host" type="text" placeholder="http://localhost:11434"
+                                            class="form-input">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Model</label>
+                                        <input v-model="configForm.ollama_model" type="text" placeholder="llama3"
+                                            class="form-input">
+                                    </div>
+                                </div>
+                                
+                                <button @click="saveConfig" :disabled="saving"
+                                    class="btn btn-primary btn-block">
+                                    <i :class="saving ? 'ph ph-spinner animate-spin' : 'ph ph-floppy-disk'"></i>
+                                    {{ saving ? 'Saving...' : 'Save Configuration' }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </transition>
+            </div>
+        </main>
+
+        <!-- Profile Edit Modal -->
+        <div v-if="editingProfile" class="modal-overlay" @click.self="closeEditModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 class="modal-title">
+                        <i class="ph ph-pencil-simple"></i>
+                        Edit: {{ editingProfile }}
+                    </h3>
+                    <button @click="closeEditModal" class="modal-close">
+                        <i class="ph ph-x text-2xl"></i>
+                    </button>
+                </div>
+                
+                <div class="modal-body">
+                    <!-- Field Tabs -->
+                    <div class="flex gap-2 mb-6 border-b border-slate-200">
+                        <button v-for="field in ['preferences', 'values', 'personality', 'context']" :key="field"
+                            @click="currentField = field"
+                            :class="['px-4 py-2 font-medium capitalize transition-all border-b-2',
+                                currentField === field ? 'border-primary-500 text-primary-600' : 'border-transparent text-slate-500 hover:text-slate-700']">
+                            {{ field }}
+                        </button>
+                    </div>
+                    
+                    <!-- Tag Input -->
+                    <div class="space-y-3">
+                        <div class="tags-container">
+                            <span v-for="(tag, index) in profileData[currentField]" :key="index"
+                                class="tag">
+                                {{ tag }}
+                                <button @click="removeTag(index)" class="tag-remove">
+                                    <i class="ph ph-x text-xs"></i>
+                                </button>
+                            </span>
+                            <span v-if="profileData[currentField].length === 0" class="text-slate-400 text-sm">
+                                No items yet. Add some below!
+                            </span>
+                        </div>
+                        
+                        <div class="flex gap-2">
+                            <input v-model="newTag" @keyup.enter="addTag" type="text"
+                                :placeholder="`Add ${currentField}... (press Enter)`"
+                                class="form-input flex-1">
+                            <button @click="addTag" class="btn btn-primary">
+                                <i class="ph ph-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button @click="deleteProfile(editingProfile); closeEditModal()"
+                        class="text-rose-500 hover:bg-rose-50 px-4 py-2 rounded-lg transition-colors font-medium">
+                        <i class="ph ph-trash mr-2"></i>Delete Profile
+                    </button>
+                    <button @click="saveProfile" class="btn btn-primary">
+                        <i class="ph ph-check mr-2"></i>Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Personality Builder Modal -->
+        <div v-if="personalityBuilderOpen" class="modal-overlay" @click.self="closePersonalityBuilder">
+            <div class="modal max-w-3xl">
+                <div class="modal-header">
+                    <h3 class="modal-title">
+                        <i class="ph ph-sparkle"></i>
+                        Personality Builder
+                    </h3>
+                    <button @click="closePersonalityBuilder" class="modal-close">
+                        <i class="ph ph-x text-2xl"></i>
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    <!-- Progress -->
+                    <div class="mb-6">
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="font-medium">Question {{ builderStep }}</span>
+                            <span class="text-slate-500">{{ builderCurrentQuestion ? Math.round(builderCurrentQuestion.progress_percent) : 0 }}% complete</span>
+                        </div>
+                        <div class="h-2 bg-slate-200 rounded-full overflow-hidden">
+                            <div class="h-full gradient-bg transition-all duration-300"
+                                :style="{ width: (builderCurrentQuestion ? builderCurrentQuestion.progress_percent : 0) + '%' }"></div>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-2" v-if="builderCurrentQuestion">
+                            Category: <span class="font-medium">{{ builderCurrentQuestion.category }}</span>
+                        </p>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div v-if="!builderCurrentQuestion && !builderComplete" class="text-center py-8">
+                        <i class="ph ph-spinner animate-spin text-4xl text-primary-500 mb-4"></i>
+                        <p class="text-slate-600">Generating question...</p>
+                    </div>
+
+                    <!-- Question -->
+                    <div v-if="builderCurrentQuestion && !builderComplete">
+                        <div class="mb-6">
+                            <h4 class="text-lg font-semibold text-slate-800 mb-4">
+                                {{ builderCurrentQuestion.question }}
+                            </h4>
+                            <p class="text-slate-500 text-sm">
+                                Question {{ builderCurrentQuestion.question_number }} of {{ builderCurrentQuestion.total_questions }}
+                            </p>
+                        </div>
+
+                        <!-- Answer Input -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-slate-700 mb-2">
+                                Your Answer
+                            </label>
+                            <textarea v-model="builderCustomInput"
+                                placeholder="Type your answer here..."
+                                rows="4"
+                                class="form-input w-full"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Complete Screen -->
+                    <div v-else-if="builderComplete" class="text-center py-8">
+                        <i class="ph ph-check-circle text-6xl text-emerald-500 mb-4"></i>
+                        <h4 class="text-xl font-bold text-slate-800 mb-2">Profile Built Successfully!</h4>
+                        <p class="text-slate-600 mb-6">
+                            Your profile has been created based on your answers.
+                        </p>
+                        <div class="flex justify-center gap-4">
+                            <button @click="closePersonalityBuilder" class="btn btn-primary">
+                                <i class="ph ph-check"></i>
+                                Done
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Navigation -->
+                <div v-if="builderCurrentQuestion && !builderComplete" class="modal-footer">
+                    <button @click="submitBuilderAnswer(builderCustomInput)" :disabled="!builderCustomInput.trim() || loading"
+                        class="btn btn-primary btn-block">
+                        <i :class="loading ? 'ph ph-spinner animate-spin' : 'ph ph-paper-plane-right'"></i>
+                        {{ loading ? 'Analyzing...' : 'Submit Answer' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <!-- Components -->
+    <script src="/js/components/SearchableSelect.js"></script>
+
+    <!-- Application JavaScript -->
+    <script src="/js/app.js"></script>
+</body>
+</html>

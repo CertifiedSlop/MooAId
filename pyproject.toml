@@ -49,8 +49,8 @@ dev = [
 mooaid = "mooaid.cli.main:app"
 
 [project.urls]
-Homepage = "https://github.com/mooaid/mooaid"
-Repository = "https://github.com/mooaid/mooaid"
+Homepage = "https://github.com/CertifiedSlop/MooAId"
+Repository = "https://github.com/CertifiedSlop/MooAId"
 
 [tool.setuptools.packages.find]
 where = ["."]

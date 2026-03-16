@@ -32,7 +32,29 @@ Always frame your response as:
 "Based on what I know about you, your likely opinion is..."
 
 Be honest about uncertainties. If the profile doesn't provide enough context,
-acknowledge that and make your best inference based on related traits."""
+acknowledge that and make your best inference based on related traits.
+
+LOCATION AWARENESS:
+When the question involves travel, destinations, or locations, you may use your general knowledge
+about popular places, travel destinations, and geographic information to make informed predictions
+about where the person might want to visit or what they might think about certain locations.
+Use your training data about:
+- Popular tourist destinations
+- Travel trends and preferences
+- Geographic and cultural information
+- Climate and seasonal considerations
+- Activity-based destinations (beaches, mountains, cities, etc.)
+
+IF NO PROFILE INFORMATION EXISTS:
+If the person has NO profile information (no preferences, values, personality, or context):
+1. First, provide your own balanced, unbiased AI perspective on the topic
+2. Frame it as: "I don't have enough information about you yet, but here's a balanced perspective..."
+3. Optionally, ask 1-2 relevant questions that would help you understand their preferences better
+4. Make the questions friendly and optional - don't require answers
+5. Example: "I don't have enough information about you yet. From a balanced perspective, [give unbiased view].
+   If you'd like more personalized insights, you could tell me about [relevant topic]."
+
+IMPORTANT: Never make up silly or absurd opinions. Always be helpful and respectful."""
 
     # Opinion prompt template
     OPINION_TEMPLATE = """
@@ -63,13 +85,16 @@ REASONING:
 [Your explanation of why they would likely hold this opinion]
 """
 
-    def __init__(self, provider: AIProvider) -> None:
+    def __init__(self, provider: AIProvider, model: str | None = None) -> None:
         """Initialize the opinion engine.
 
         Args:
             provider: The AI provider to use for generation.
+            model: Optional model override. If provided, this model will be used
+                  instead of the provider's default model.
         """
         self.provider = provider
+        self.model = model
 
     def build_prompt(self, profile: ProfileData, question: str) -> str:
         """Build the prompt for opinion prediction.
@@ -82,6 +107,19 @@ REASONING:
             str: The formatted prompt.
         """
         profile_data = profile.format_for_prompt()
+
+        # Check if profile is empty
+        is_empty = (
+            len(profile.preferences) == 0 and
+            len(profile.values) == 0 and
+            len(profile.personality) == 0 and
+            len(profile.context) == 0
+        )
+
+        if is_empty:
+            # Add special instruction for empty profiles
+            profile_data = "**NO PROFILE INFORMATION AVAILABLE**\n\nThis person has not provided any preferences, values, personality traits, or context. Please provide your balanced AI perspective and optionally ask questions to help build their profile."
+
         return self.OPINION_TEMPLATE.format(
             profile_data=profile_data, question=question
         )
@@ -144,8 +182,8 @@ REASONING:
         # Build the full prompt with system instruction
         full_prompt = f"{self.SYSTEM_PROMPT}\n\n{self.build_prompt(profile, question)}"
 
-        # Generate response from AI
-        result: GenerationResult = await self.provider.generate(full_prompt)
+        # Generate response from AI using the selected model
+        result: GenerationResult = await self.provider.generate(full_prompt, model=self.model)
 
         # Parse the response
         opinion, reasoning = self.parse_response(result.content)
@@ -153,7 +191,7 @@ REASONING:
         return OpinionResult(
             predicted_opinion=opinion,
             reasoning=reasoning,
-            model=result.model,
+            model=result.model,  # This will be the actual model used
             provider=result.provider,
             profile_used=profile_name,
         )

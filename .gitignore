@@ -19,7 +19,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-
+config.yaml.old
 # Virtual environments
 venv/
 env/
@@ -65,3 +65,6 @@ Thumbs.db
 # Project specific
 mooaid.db
 config.local.yaml
+
+# Qwen
+.qwen/

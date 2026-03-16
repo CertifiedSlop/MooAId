@@ -44,7 +44,7 @@ class OpenRouterProvider(AIProvider):
                     "Authorization": f"Bearer {self.config.api_key}",
                     "Content-Type": "application/json",
                     # OpenRouter specific headers
-                    "HTTP-Referer": "https://github.com/mooaid/mooaid",
+                    "HTTP-Referer": "https://github.com/CertifiedSlop/MooAId",
                     "X-Title": "MooAId",
                 },
                 timeout=60.0,
@@ -117,6 +117,58 @@ class OpenRouterProvider(AIProvider):
             return response.status_code == 200
         except Exception:
             return False
+
+    async def get_models(self) -> list[dict[str, str]]:
+        """Get available models from OpenRouter.
+
+        Returns:
+            list: List of available models with id and name.
+        """
+        if not self.config.api_key:
+            # Return default models if no API key
+            return [
+                {"id": "anthropic/claude-3-haiku", "name": "Claude 3 Haiku"},
+                {"id": "anthropic/claude-3-sonnet", "name": "Claude 3 Sonnet"},
+                {"id": "anthropic/claude-3-opus", "name": "Claude 3 Opus"},
+                {"id": "openai/gpt-3.5-turbo", "name": "GPT-3.5 Turbo"},
+                {"id": "openai/gpt-4-turbo", "name": "GPT-4 Turbo"},
+                {"id": "openai/gpt-4o", "name": "GPT-4o"},
+                {"id": "meta-llama/llama-3-70b-instruct", "name": "Llama 3 70B"},
+                {"id": "google/gemini-pro-1.5", "name": "Gemini Pro 1.5"},
+                {"id": "mistralai/mistral-large", "name": "Mistral Large"},
+            ]
+
+        try:
+            client = await self._get_client()
+            # OpenRouter uses /models endpoint
+            response = await client.get("/models")
+            response.raise_for_status()
+            data = response.json()
+
+            models = []
+            for model in data.get("data", []):
+                model_id = model.get("id", "")
+                model_name = model.get("name", model.get("id", ""))
+                # Only include text models for now
+                if model_id:
+                    models.append({
+                        "id": model_id,
+                        "name": model_name,
+                    })
+            return models
+        except Exception as e:
+            # Return default models if API call fails
+            return [
+                {"id": "anthropic/claude-3-haiku", "name": "Claude 3 Haiku"},
+                {"id": "anthropic/claude-3-sonnet", "name": "Claude 3 Sonnet"},
+                {"id": "anthropic/claude-3-opus", "name": "Claude 3 Opus"},
+                {"id": "openai/gpt-3.5-turbo", "name": "GPT-3.5 Turbo"},
+                {"id": "openai/gpt-4-turbo", "name": "GPT-4 Turbo"},
+                {"id": "openai/gpt-4o", "name": "GPT-4o"},
+                {"id": "meta-llama/llama-3-70b-instruct", "name": "Llama 3 70B"},
+                {"id": "google/gemini-pro-1.5", "name": "Gemini Pro 1.5"},
+                {"id": "mistralai/mistral-large", "name": "Mistral Large"},
+            ]
 
     async def close(self) -> None:
         """Close the HTTP client."""

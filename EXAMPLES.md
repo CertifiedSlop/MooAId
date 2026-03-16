@@ -10,7 +10,8 @@ This guide demonstrates how to use MooAId in various scenarios.
 2. [CLI Examples](#cli-examples)
 3. [REST API Examples](#rest-api-examples)
 4. [Python SDK Examples](#python-sdk-examples)
-5. [Use Cases](#use-cases)
+5. [Profile Builder](#profile-builder)
+6. [Use Cases](#use-cases)
 
 ---
 
@@ -299,6 +300,137 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 ```
+
+---
+
+## Profile Builder
+
+The Profile Builder is an AI-powered interactive tool that helps you create a comprehensive profile by asking you thoughtful questions and analyzing your answers.
+
+### Using the CLI Profile Builder
+
+```bash
+# Start the interactive profile builder
+mooaid profile build default
+
+# Or build a new profile
+mooaid profile build myprofile
+```
+
+The builder will:
+1. Ask you 11 questions across 4 categories:
+   - **Interests & Hobbies** (3 questions) - What you enjoy doing
+   - **Core Values** (3 questions) - Your fundamental beliefs
+   - **Personality Traits** (3 questions) - How you think and interact
+   - **Life Context** (2 questions) - Your background and environment
+
+2. Analyze each answer to extract relevant traits
+3. Automatically populate your profile with the extracted data
+
+**Example Session:**
+```
+$ mooaid profile build default
+
+╔═══════════════════════════════════════════════╗
+║  🧠 Welcome to the Profile Builder            ║
+╠═══════════════════════════════════════════════╣
+║  Building profile: default                    ║
+║                                               ║
+║  I'll ask you 11 questions across 4 categories║
+║  • Interests & Hobbies (3 questions)          ║
+║  • Core Values (3 questions)                  ║
+║  • Personality Traits (3 questions)           ║
+║  • Life Context (2 questions)                 ║
+║                                               ║
+║  Answer honestly - there are no wrong answers!║
+║  Type 'skip' to skip a question.              ║
+║  Type 'quit' to exit early.                   ║
+╚═══════════════════════════════════════════════╝
+
+Category 1/4: Interests & Hobbies
+Question 1/11
+
+What hobbies or activities do you enjoy in your free time?
+
+> I love reading science fiction novels and hiking on weekends
+
+✓ Got it! You enjoy creative and outdoor activities.
+
+Category 1/4: Interests & Hobbies
+Question 2/11
+
+...
+
+[dim]Analyzing your answers and building your profile...[/dim]
+
+╔═══════════════════════════════════════════════╗
+║  🎉 Profile Complete                          ║
+╠═══════════════════════════════════════════════╣
+║  ✓ Profile 'default' built successfully!      ║
+║                                               ║
+║  Extracted:                                   ║
+║    • 5 preferences                            ║
+║    • 4 values                                 ║
+║    • 3 personality traits                     ║
+║    • 2 context items                          ║
+║                                               ║
+║  View with: mooaid profile show default       ║
+╚═══════════════════════════════════════════════╝
+```
+
+### Using the Web UI Profile Builder
+
+1. Open the Web UI at `http://localhost:8000/ui`
+2. Navigate to the **Profiles** tab
+3. Click the **Personality Builder** banner or **Start Builder** button
+4. Answer the AI-generated questions
+5. Your profile is automatically created and saved
+
+### Using the REST API
+
+```python
+import httpx
+
+async def build_profile():
+    async with httpx.AsyncClient(base_url="http://localhost:8000") as client:
+        # Start a new builder session
+        response = await client.post("/profile-builder/start", json={
+            "profile_name": "myprofile"
+        })
+        session = response.json()
+        session_id = session["session_id"]
+
+        # Get the first question
+        question_response = await client.post(
+            f"/profile-builder/{session_id}/question"
+        )
+        question = question_response.json()
+        print(f"Question: {question['question']}")
+
+        # Submit your answer
+        answer_response = await client.post(
+            f"/profile-builder/{session_id}/answer",
+            json={"answer": "I love coding and solving puzzles"}
+        )
+        analysis = answer_response.json()
+        print(f"Analysis: {analysis['summary']}")
+
+        # Continue answering questions...
+        # When done, complete the session
+        complete_response = await client.post(
+            f"/profile-builder/{session_id}/complete"
+        )
+        result = complete_response.json()
+        print(f"Profile built: {result['summary']}")
+```
+
+### Tips for Best Results
+
+- **Be honest and authentic** - The AI analyzes your actual words
+- **Provide detailed answers** - More context = better profile extraction
+- **Don't overthink** - Your natural responses reveal the most
+- **Skip irrelevant questions** - Type `skip` if a question doesn't resonate
+- **Review and edit** - After building, use `mooaid profile show` to review and `mooaid profile add/remove` to refine
 
 ---
 

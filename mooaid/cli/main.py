@@ -14,6 +14,7 @@ from mooaid.core.opinion_engine import OpinionEngine
 from mooaid.core.provider_factory import ProviderFactory, get_provider
 from mooaid.profile import DatabaseManager, ProfileData
 from mooaid.profile.service import ProfileService
+from mooaid.profile.builder import ProfileBuilder
 
 app = typer.Typer(
     name="mooaid",
@@ -203,8 +204,122 @@ def create_profile(
         console.print(f"  [bold]mooaid profile add preferences \"likes open source\"[/bold]")
         console.print(f"  [bold]mooaid profile add values \"privacy\"[/bold]")
         console.print(f"  [bold]mooaid profile add personality \"analytical\"[/bold]")
+        console.print("\nOr use the interactive builder:")
+        console.print(f"  [bold]mooaid profile build {name}[/bold]")
 
     except ValueError as e:
+        console.print(f"[red]Error: {e}[/red]")
+        raise typer.Exit(1)
+    finally:
+        loop.run_until_complete(db.close())
+
+
+@profile.command("build")
+def build_profile(
+    name: Annotated[str, typer.Argument(help="Profile name to create/build")],
+) -> None:
+    """Build a profile interactively with AI-powered questions."""
+    loop = asyncio.get_event_loop()
+    config = get_config()
+    db, profile_service = init_services(config)
+
+    try:
+        # Check if profile exists
+        existing = loop.run_until_complete(profile_service.get_profile(name))
+        if existing is not None:
+            console.print(f"[yellow]Profile '{name}' already exists. Building on top of it.[/yellow]")
+
+        # Get provider and create builder
+        provider = get_provider(config.provider)
+        builder = ProfileBuilder(provider, model=None)
+
+        # Start session
+        console.print(Panel.fit(
+            "[bold blue]Profile Builder[/bold blue]\n\n"
+            f"Building profile: [cyan]{name}[/cyan]\n\n"
+            "I'll ask you 11 questions across 4 categories:\n"
+            "• Interests & Hobbies (3 questions)\n"
+            "• Core Values (3 questions)\n"
+            "• Personality Traits (3 questions)\n"
+            "• Life Context (2 questions)\n\n"
+            "Answer honestly - there are no wrong answers!\n"
+            "Type [yellow]skip[/yellow] to skip a question.\n"
+            "Type [yellow]quit[/yellow] to exit early.",
+            title="🧠 Welcome to the Profile Builder",
+        ))
+
+        loop.run_until_complete(builder.start_session(name))
+
+        # Question loop
+        while True:
+            # Get progress
+            progress = builder.get_progress()
+
+            if progress["complete"]:
+                break
+
+            # Generate next question
+            question = loop.run_until_complete(builder.generate_question())
+
+            if not question:
+                break
+
+            # Display progress
+            category_display = f"{progress['category_index'] + 1}/{progress['total_categories']}"
+            question_num = progress["questions_answered"] + 1
+
+            console.print(
+                f"\n[bold cyan]Category {category_display}: {progress['current_category']}[/bold cyan]\n"
+                f"[dim]Question {question_num}/{progress['total_questions']}[/dim]\n"
+            )
+
+            # Ask the question
+            from rich.prompt import Prompt
+            answer = Prompt.ask(f"\n[bold]{question}[/bold]")
+
+            # Handle special commands
+            if answer.lower() in ("quit", "exit", "q"):
+                console.print("\n[yellow]Exiting early. Saving what we have...[/yellow]")
+                break
+
+            if answer.lower() in ("skip", "s"):
+                console.print("[dim]Skipping...[/dim]")
+                loop.run_until_complete(builder.submit_answer("Skipped"))
+                continue
+
+            # Submit answer and show analysis
+            analysis = loop.run_until_complete(builder.submit_answer(answer))
+
+            if analysis.get("summary"):
+                console.print(f"\n[green]✓ Got it! {analysis['summary']}[/green]")
+
+        # Complete session and save profile
+        console.print("\n[dim]Analyzing your answers and building your profile...[/dim]\n")
+        profile_data = loop.run_until_complete(builder.complete_session())
+
+        # Save to database
+        if profile_data.preferences:
+            loop.run_until_complete(profile_service.add_preferences(name, profile_data.preferences))
+        if profile_data.values:
+            loop.run_until_complete(profile_service.add_values(name, profile_data.values))
+        if profile_data.personality:
+            loop.run_until_complete(profile_service.add_personality(name, profile_data.personality))
+        if profile_data.context:
+            loop.run_until_complete(profile_service.add_context(name, profile_data.context))
+
+        # Show summary
+        console.print(Panel(
+            f"[bold green]✓ Profile '{name}' built successfully![/bold green]\n\n"
+            f"[cyan]Extracted:[/cyan]\n"
+            f"  • {len(profile_data.preferences)} preferences\n"
+            f"  • {len(profile_data.values)} values\n"
+            f"  • {len(profile_data.personality)} personality traits\n"
+            f"  • {len(profile_data.context)} context items\n\n"
+            f"View with: [bold]mooaid profile show {name}[/bold]",
+            title="🎉 Profile Complete",
+        ))
+
+    except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
         raise typer.Exit(1)
     finally:

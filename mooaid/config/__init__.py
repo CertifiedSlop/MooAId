@@ -1,5 +1,6 @@
 """Configuration module for MooAId."""
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -125,7 +126,29 @@ class ConfigManager:
         if "logging" in raw_config:
             config_data["logging"] = LoggingConfig(**raw_config["logging"])
 
-        cls._config = Config(**config_data)
+        config = Config(**config_data)
+
+        # Override with environment variables (for Docker deployment)
+        # Only use env vars if they are not empty
+        if env_provider := os.environ.get("MOOAID_PROVIDER"):
+            config.provider = env_provider
+        if env_db_path := os.environ.get("MOOAID_DB_PATH"):
+            config.database.path = env_db_path
+        if env_api_host := os.environ.get("MOOAID_HOST"):
+            config.api.host = env_api_host
+        if env_api_port := os.environ.get("MOOAID_PORT"):
+            config.api.port = int(env_api_port)
+        # Only override API keys if env var is set and not empty
+        if (env_openrouter_key := os.environ.get("OPENROUTER_API_KEY")) and env_openrouter_key.strip():
+            config.openrouter.api_key = env_openrouter_key
+        if (env_openai_key := os.environ.get("OPENAI_API_KEY")) and env_openai_key.strip():
+            config.openai.api_key = env_openai_key
+        if (env_gemini_key := os.environ.get("GEMINI_API_KEY")) and env_gemini_key.strip():
+            config.gemini.api_key = env_gemini_key
+        if (env_ollama_host := os.environ.get("OLLAMA_HOST")) and env_ollama_host.strip():
+            config.ollama.host = env_ollama_host
+
+        cls._config = config
         return cls._config
 
     @classmethod
