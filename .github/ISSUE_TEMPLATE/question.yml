@@ -1,0 +1,42 @@
+---
+name: ❓ Question / Discussion
+description: Ask a question or start a discussion
+title: "[Question]: "
+labels: ["question"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question? Ask it here!
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: Ask your question in detail.
+      placeholder: ex. How do I...? Is it possible to...?
+    validations:
+      required: true
+  - type: dropdown
+    id: topic
+    attributes:
+      label: Topic
+      description: What is your question about?
+      options:
+        - Installation/Setup
+        - Configuration
+        - Profile Builder
+        - API Usage
+        - CLI Usage
+        - Docker Deployment
+        - Development/Contributing
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Add any relevant context or what you've already tried.
+    validations:
+      required: false

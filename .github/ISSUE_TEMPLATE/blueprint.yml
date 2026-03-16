@@ -1,0 +1,94 @@
+---
+name: 🗺️ Blueprint / Project Idea
+description: Propose a major feature, extension, or project direction
+title: "[Blueprint]: "
+labels: ["blueprint", "enhancement"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Blueprint Proposal
+        
+        Blueprints are major features or project directions that require planning and discussion before implementation.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: A brief summary of the blueprint (2-3 sentences)
+      placeholder: ex. Add vector memory support for opinion history retrieval...
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this blueprint solve?
+      placeholder: ex. Currently, MooAId cannot retrieve past opinions, which limits...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution
+      description: Describe your proposed solution in detail.
+      placeholder: ex. Implement a vector database (ChromaDB/Qdrant) to store opinion embeddings...
+    validations:
+      required: true
+  - type: textarea
+    id: implementation
+    attributes:
+      label: Implementation Plan
+      description: Break down the implementation into phases or steps.
+      placeholder: |
+        Phase 1: Research and select vector database
+        Phase 2: Implement embedding generation
+        Phase 3: Add retrieval API endpoints
+        Phase 4: Update opinion engine with RAG support
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Consider
+      description: What alternative approaches did you consider?
+    validations:
+      required: false
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      description: How big is this change?
+      options:
+        - Small (1-2 days)
+        - Medium (1 week)
+        - Large (2-4 weeks)
+        - Major (1+ months)
+    validations:
+      required: true
+  - type: dropdown
+    id: breaking
+    attributes:
+      label: Breaking Change?
+      description: Will this require breaking changes?
+      options:
+        - No
+        - Yes, minor (config format change)
+        - Yes, major (API change)
+    validations:
+      required: true
+  - type: textarea
+    id: resources
+    attributes:
+      label: Required Resources
+      description: What resources are needed? (new dependencies, API keys, etc.)
+    validations:
+      required: false
+  - type: textarea
+    id: success
+    attributes:
+      label: Success Criteria
+      description: How will we know this blueprint is successfully implemented?
+      placeholder: ex. Users can retrieve relevant past opinions when asking new questions...
+    validations:
+      required: true

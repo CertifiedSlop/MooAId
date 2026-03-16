@@ -1,0 +1,41 @@
+---
+name: 📝 Documentation Improvement
+description: Suggest improvements or report issues with documentation
+title: "[Docs]: "
+labels: ["documentation"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve MooAId documentation!
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type of Issue
+      description: What type of documentation issue is this?
+      options:
+        - Missing documentation
+        - Incorrect information
+        - Unclear explanation
+        - Broken link
+        - Typo or grammar
+        - Other (specify in description)
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe the documentation issue or what should be added.
+      placeholder: ex. The Profile Builder section is missing information about...
+    validations:
+      required: true
+  - type: input
+    id: page
+    attributes:
+      label: Affected Documentation Page
+      description: Link to or name of the affected page (if applicable)
+      placeholder: ex. Wiki: Profile-Builder, README.md section...
+    validations:
+      required: false
